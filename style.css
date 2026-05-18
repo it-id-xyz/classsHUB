@@ -1,26 +1,285 @@
-
-/* Custom Scrollbar untuk look and feel seperti Mobile App */
-::-webkit-scrollbar {
-    width: 6px;
+/* CSS Variables untuk Skema Warna */
+:root {
+    --primary-color: #2563EB;
+    --primary-hover: #1D4ED8;
+    --secondary-bg: #F3F4F6;
+    --accent-color: #FACC15;
+    --accent-hover: #EAB308;
+    
+    --bg-main: #F3F4F6;
+    --bg-container: #FFFFFF;
+    --text-main: #1F2937;
+    --text-muted: #6B7280;
+    --border-color: #E5E7EB;
 }
 
-::-webkit-scrollbar-track {
-    background: transparent;
+/* Dark Mode Variables */
+body.dark {
+    --primary-color: #3B82F6;
+    --bg-main: #111827;
+    --bg-container: #1F2937;
+    --text-main: #F9FAFB;
+    --text-muted: #9CA3AF;
+    --border-color: #374151;
 }
 
-::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 10px;
+/* Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.dark ::-webkit-scrollbar-thumb {
-    background: #475569;
+body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    transition: background-color 0.3s, color 0.3s;
 }
 
-/* Animasi transisi antar tab */
-.fade-in {
+/* Mobile App Container */
+.app-container {
+    max-w-md;
+    max-width: 450px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background-color: var(--bg-container);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    position: relative;
+    padding-bottom: 80px;
+}
+
+/* Header */
+.header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header-actions button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 18px;
+    margin-left: 12px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.header-actions button:hover {
+    color: var(--accent-color);
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    margin-top: 16px;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px;
+    background: none;
+    border: none;
+    font-weight: bold;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+
+.tab-btn.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+/* Content Area */
+.content-area {
+    padding: 16px;
     animation: fadeIn 0.3s ease-in-out;
 }
+
+.section-title {
+    font-size: 18px;
+    margin-bottom: 12px;
+}
+
+.data-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Item Card */
+.item-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background-color: var(--bg-container);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.item-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.item-link:hover {
+    text-decoration: underline;
+}
+
+.btn-delete {
+    background: none;
+    border: none;
+    color: #EF4444;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+/* Floating Action Button */
+.fab {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    background-color: var(--accent-color);
+    color: #000;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    transition: transform 0.2s;
+}
+
+.fab:hover {
+    transform: scale(1.05);
+    background-color: var(--accent-hover);
+}
+
+/* Modals */
+.modal {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+}
+
+.modal-content {
+    background-color: var(--bg-container);
+    padding: 24px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 10px 15px rgba(0,0,0,0.2);
+}
+
+.modal-content h3 {
+    margin-bottom: 16px;
+}
+
+.form-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.form-tab-btn {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--secondary-bg);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-muted);
+}
+
+.form-tab-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.input-field {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-container);
+    color: var(--text-main);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-primary {
+    padding: 10px 16px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.btn-cancel {
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.btn-google {
+    width: 100%;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-container);
+    color: var(--text-main);
+    cursor: pointer;
+    margin-bottom: 16px;
+}
+
+.btn-google img {
+    width: 20px;
+}
+
+/* Utilities */
+.hidden { display: none !important; }
+.text-center { text-align: center; }
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(5px); }
