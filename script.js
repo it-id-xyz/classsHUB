@@ -4,11 +4,13 @@ import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, serverTim
 
 // 1. Konfigurasi Firebase (Ganti dengan .env lu)
 const firebaseConfig = {
-    apiKey: "API_KEY",
-    authDomain: "PROJECT_ID.firebaseapp.com",
-    projectId: "PROJECT_ID",
-    messagingSenderId: "MESSAGING_ID",
-    appId: "APP_ID"
+  apiKey: "AIzaSyA23k0yeIkXj8_u91YH6qqIF_y117665tM",
+  authDomain: "gudang-186be.firebaseapp.com",
+  projectId: "gudang-186be",
+  storageBucket: "gudang-186be.firebasestorage.app",
+  messagingSenderId: "39135400483",
+  appId: "1:39135400483:web:ec0a9437524d4c2a645796",
+  measurementId: "G-LB3RDLL34Y"
 };
 
 const app = initializeApp(firebaseConfig);
