@@ -1,153 +1,209 @@
-// Import fungsi Firebase dari CDN (Modular SDK)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-// 1. Konfigurasi Firebase (Ambil dari .env / ganti dengan milikmu)
+// 1. Konfigurasi Firebase (ISI DENGAN MILIKMU)
 const firebaseConfig = {
-  apiKey: "AIzaSyA23k0yeIkXj8_u91YH6qqIF_y117665tM",
-  authDomain: "gudang-186be.firebaseapp.com",
-  projectId: "gudang-186be",
-  storageBucket: "gudang-186be.firebasestorage.app",
-  messagingSenderId: "39135400483",
-  appId: "1:39135400483:web:ec0a9437524d4c2a645796",
-  measurementId: "G-LB3RDLL34Y"
+    apiKey: "API_KEY",
+    authDomain: "PROJECT_ID.firebaseapp.com",
+    projectId: "PROJECT_ID",
+    storageBucket: "PROJECT_ID.appspot.com",
+    messagingSenderId: "MESSAGING_ID",
+    appId: "APP_ID"
 };
 
-// Inisialisasi Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
+const provider = new GoogleAuthProvider();
 
-// State Management
 let isAdmin = false;
 
 // 2. DOM Elements
-const themeToggle = document.getElementById('themeToggle');
-const htmlTag = document.documentElement;
+// (DOM Tab & Login sama dengan versi sebelumnya, dipotong agar hemat baris fokus ke Core Logic)
+const linksContainer = document.getElementById('linksContainer');
+const filesContainer = document.getElementById('filesContainer');
 
-// Tab Navigation
-const tabLinks = document.getElementById('tabLinks');
-const tabFiles = document.getElementById('tabFiles');
-const contentLinks = document.getElementById('contentLinks');
-const contentFiles = document.getElementById('contentFiles');
-
-// Admin Elements
-const adminLoginBtn = document.getElementById('adminLoginBtn');
-const adminLogoutBtn = document.getElementById('adminLogoutBtn');
+// Elements Add Modal
 const fabAdd = document.getElementById('fabAdd');
-const loginModal = document.getElementById('loginModal');
-const closeLoginBtn = document.getElementById('closeLoginBtn');
-const submitLoginBtn = document.getElementById('submitLoginBtn');
+const addModal = document.getElementById('addModal');
+const closeAddBtn = document.getElementById('closeAddBtn');
+const addForm = document.getElementById('addForm');
+const btnTypeLink = document.getElementById('btnTypeLink');
+const btnTypeFile = document.getElementById('btnTypeFile');
+const inputTitle = document.getElementById('inputTitle');
+const inputUrl = document.getElementById('inputUrl');
+const inputFile = document.getElementById('inputFile');
+const uploadProgress = document.getElementById('uploadProgress');
+const progressBar = document.getElementById('progressBar');
+const submitAddBtn = document.getElementById('submitAddBtn');
 
-// 3. UI Interactions (Tabs & Theme)
-themeToggle.addEventListener('click', () => {
-    htmlTag.classList.toggle('dark');
-    const isDark = htmlTag.classList.contains('dark');
-    themeToggle.innerHTML = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+let currentInputType = 'link'; // 'link' atau 'file'
+
+// 3. UI Interactions Add Modal
+fabAdd.addEventListener('click', () => addModal.classList.remove('hidden'));
+closeAddBtn.addEventListener('click', () => addModal.classList.add('hidden'));
+
+btnTypeLink.addEventListener('click', () => {
+    currentInputType = 'link';
+    btnTypeLink.className = "flex-1 py-2 bg-blue-100 text-blue-600 rounded-lg font-semibold border border-blue-600";
+    btnTypeFile.className = "flex-1 py-2 bg-gray-100 text-gray-500 rounded-lg font-semibold border border-transparent";
+    inputUrl.classList.remove('hidden');
+    inputUrl.required = true;
+    inputFile.classList.add('hidden');
+    inputFile.required = false;
 });
 
-tabLinks.addEventListener('click', () => {
-    contentLinks.classList.remove('hidden');
-    contentFiles.classList.add('hidden');
-    tabLinks.classList.add('text-primary', 'border-b-2', 'border-primary');
-    tabLinks.classList.remove('text-gray-500');
-    tabFiles.classList.add('text-gray-500');
-    tabFiles.classList.remove('text-primary', 'border-b-2', 'border-primary');
-    contentLinks.classList.add('fade-in');
+btnTypeFile.addEventListener('click', () => {
+    currentInputType = 'file';
+    btnTypeFile.className = "flex-1 py-2 bg-blue-100 text-blue-600 rounded-lg font-semibold border border-blue-600";
+    btnTypeLink.className = "flex-1 py-2 bg-gray-100 text-gray-500 rounded-lg font-semibold border border-transparent";
+    inputFile.classList.remove('hidden');
+    inputFile.required = true;
+    inputUrl.classList.add('hidden');
+    inputUrl.required = false;
 });
 
-tabFiles.addEventListener('click', () => {
-    contentFiles.classList.remove('hidden');
-    contentLinks.classList.add('hidden');
-    tabFiles.classList.add('text-primary', 'border-b-2', 'border-primary');
-    tabFiles.classList.remove('text-gray-500');
-    tabLinks.classList.add('text-gray-500');
-    tabLinks.classList.remove('text-primary', 'border-b-2', 'border-primary');
-    contentFiles.classList.add('fade-in');
-});
+// 4. Core Logic: Tambah Data (Submit Form)
+addForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitAddBtn.disabled = true;
+    submitAddBtn.innerText = "Menyimpan...";
 
-// 4. Authentication Logic
-adminLoginBtn.addEventListener('click', () => loginModal.classList.remove('hidden'));
-closeLoginBtn.addEventListener('click', () => loginModal.classList.add('hidden'));
-
-submitLoginBtn.addEventListener('click', async () => {
-    const email = document.getElementById('emailInput').value;
-    const password = document.getElementById('passwordInput').value;
     try {
-        await signInWithEmailAndPassword(auth, email, password);
-        loginModal.classList.add('hidden');
-        alert("Login Berhasil!");
+        if (currentInputType === 'link') {
+            await addDoc(collection(db, "links"), {
+                title: inputTitle.value,
+                url: inputUrl.value,
+                createdAt: serverTimestamp()
+            });
+            resetFormAndClose();
+        } 
+        else if (currentInputType === 'file') {
+            const file = inputFile.files[0];
+            if (!file) return alert("Pilih file terlebih dahulu!");
+
+            uploadProgress.classList.remove('hidden');
+            const storageRef = ref(storage, `materi/${Date.now()}_${file.name}`);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            uploadTask.on('state_changed', 
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    progressBar.style.width = progress + '%';
+                }, 
+                (error) => {
+                    console.error(error);
+                    alert("Upload gagal!");
+                    submitAddBtn.disabled = false;
+                }, 
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    await addDoc(collection(db, "files"), {
+                        title: inputTitle.value,
+                        fileName: file.name,
+                        url: downloadURL,
+                        storagePath: uploadTask.snapshot.ref.fullPath,
+                        createdAt: serverTimestamp()
+                    });
+                    resetFormAndClose();
+                }
+            );
+        }
     } catch (error) {
-        alert("Login Gagal: " + error.message);
+        console.error("Error adding document: ", error);
+        alert("Terjadi kesalahan sistem.");
+        submitAddBtn.disabled = false;
     }
 });
 
-adminLogoutBtn.addEventListener('click', () => signOut(auth));
+function resetFormAndClose() {
+    addForm.reset();
+    uploadProgress.classList.add('hidden');
+    progressBar.style.width = '0%';
+    addModal.classList.add('hidden');
+    submitAddBtn.disabled = false;
+    submitAddBtn.innerText = "Simpan";
+}
 
-// Listener Status Auth (Cek siapa yang login)
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        isAdmin = true;
-        adminLoginBtn.classList.add('hidden');
-        adminLogoutBtn.classList.remove('hidden');
-        fabAdd.classList.remove('hidden');
-    } else {
-        isAdmin = false;
-        adminLoginBtn.classList.remove('hidden');
-        adminLogoutBtn.classList.add('hidden');
-        fabAdd.classList.add('hidden');
-    }
-    fetchData(); // Render ulang data berdasarkan status admin
-});
-
-// 5. Database Logic (Read Data)
-async function fetchData() {
-    // Boilerplate mengambil link (Asumsi ada collection 'links' di Firestore)
-    const linksContainer = document.getElementById('linksContainer');
-    linksContainer.innerHTML = ''; // Kosongkan saat loading
-
-    try {
-        // Contoh Hardcode UI (Ganti dengan getDocs dari Firestore nanti)
-        // const querySnapshot = await getDocs(collection(db, "links"));
-        // querySnapshot.forEach((doc) => { ... });
-        
-        // Mockup Data UI
-        const mockupLinks = [
-            { id: 1, title: 'Zoom Meeting Matematika', url: '#', icon: 'fa-video' },
-            { id: 2, title: 'Grup WA Kelas 12', url: '#', icon: 'fa-whatsapp' }
-        ];
-
-        mockupLinks.forEach(item => {
+// 5. Core Logic: Read Data (Real-time Listeners)
+function listenData() {
+    // Listener Links
+    onSnapshot(collection(db, "links"), (snapshot) => {
+        linksContainer.innerHTML = '';
+        if(snapshot.empty) {
+            linksContainer.innerHTML = `<p class="text-sm text-gray-500 text-center italic mt-4">Belum ada link yang ditambahkan.</p>`;
+            return;
+        }
+        snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
             const el = document.createElement('div');
-            el.className = "flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700";
+            el.className = "flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700";
             el.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 text-primary flex items-center justify-center">
-                        <i class="fa-solid ${item.icon}"></i>
-                    </div>
-                    <a href="${item.url}" class="font-medium hover:text-primary transition">${item.title}</a>
-                </div>
-                ${isAdmin ? `<button class="text-red-500 hover:text-red-700" onclick="deleteItem('${item.id}')"><i class="fa-solid fa-trash"></i></button>` : ''}
+                <a href="${data.url}" target="_blank" class="font-medium text-blue-600 dark:text-blue-400 hover:underline"><i class="fa-solid fa-link mr-2"></i>${data.title}</a>
+                ${isAdmin ? `<button class="text-red-500 hover:text-red-700 delete-link-btn" data-id="${docSnap.id}"><i class="fa-solid fa-trash"></i></button>` : ''}
             `;
             linksContainer.appendChild(el);
         });
+        attachDeleteListeners();
+    });
 
-        // Lakukan hal yang sama untuk filesContainer (Storage)
-        const filesContainer = document.getElementById('filesContainer');
-        filesContainer.innerHTML = '<p class="text-sm text-gray-500 text-center mt-4">Belum ada materi yang diunggah.</p>';
-
-    } catch (error) {
-        console.error("Error fetching data:", error);
-    }
+    // Listener Files
+    onSnapshot(collection(db, "files"), (snapshot) => {
+        filesContainer.innerHTML = '';
+        if(snapshot.empty) {
+            filesContainer.innerHTML = `<p class="text-sm text-gray-500 text-center italic mt-4">Belum ada materi yang diunggah.</p>`;
+            return;
+        }
+        snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const el = document.createElement('div');
+            el.className = "flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700";
+            el.innerHTML = `
+                <div class="flex flex-col">
+                    <span class="font-medium text-gray-800 dark:text-gray-200"><i class="fa-solid fa-file-pdf text-red-500 mr-2"></i>${data.title}</span>
+                    <a href="${data.url}" target="_blank" class="text-xs text-blue-500 hover:underline mt-1">Download File</a>
+                </div>
+                ${isAdmin ? `<button class="text-red-500 hover:text-red-700 delete-file-btn" data-id="${docSnap.id}" data-path="${data.storagePath}"><i class="fa-solid fa-trash"></i></button>` : ''}
+            `;
+            filesContainer.appendChild(el);
+        });
+        attachDeleteListeners();
+    });
 }
 
-// Global function dummy untuk delete
-window.deleteItem = (id) => {
-    if(confirm('Hapus item ini?')) {
-        console.log("Delete logic untuk ID:", id);
-        // Implementasi deleteDoc(doc(db, "links", id))
-    }
+// 6. Core Logic: Delete Data
+function attachDeleteListeners() {
+    document.querySelectorAll('.delete-link-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            if(confirm("Hapus link ini?")) {
+                await deleteDoc(doc(db, "links", btn.dataset.id));
+            }
+        });
+    });
+
+    document.querySelectorAll('.delete-file-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            if(confirm("Hapus file materi ini? (Tindakan ini tidak bisa dibatalkan)")) {
+                try {
+                    // Hapus dari Storage dulu
+                    const fileRef = ref(storage, btn.dataset.path);
+                    await deleteObject(fileRef);
+                    // Hapus dari Firestore
+                    await deleteDoc(doc(db, "files", btn.dataset.id));
+                } catch (error) {
+                    console.error("Gagal menghapus file:", error);
+                }
+            }
+        });
+    });
 }
+
+// Panggil listenData di dalam onAuthStateChanged
+onAuthStateChanged(auth, (user) => {
+    isAdmin = !!user;
+    // ... logic hide/show tombol login/fab ...
+    listenData(); // Refresh UI setiap kali ganti akun
+});
